@@ -1,0 +1,70 @@
+== corpus ==
+168 passages, 32 document families, 16 fictional products (seed 7)
+  dev      42 answerable, 22 conflict, 4 offtopic, 24 unanswerable
+  heldout  43 answerable, 21 conflict, 4 offtopic, 24 unanswerable
+  held-out retrieval: gold sentence in top-6 for 100.0% of answerable questions (100.0% after conflict resolution)
+
+== labelled claims (held-out products, seeds [201, 202, 203, 204, 205]): 663 claims ==
+  none 255, reword 78, subtle_addition 54, wrong_citation 47, entity_swap 41, stale_claim 33, fabricated_citation 31, unsupported_addition 28, number_altered 24, paraphrase_unseen 21, negation_dropped 17, antonym_flip 12, unit_swap 12, paraphrase_known 10
+
+== verifier configurations (each calibrated on dev claims only) ==
+configuration               thr  unsupported before         after (kept)  bad caught  faithful rejected  cite precision
+citation id exists only    0.00               45.1%        40.4% [37-44]       10.4%               0.0%  80.4-> 84.3%
+lexical overlap only       0.80               45.1%        16.0% [13-19]       64.5%               2.5%  80.4-> 93.9%
++ numbers and units        0.80               45.1%         10.3% [8-13]       77.3%               2.5%  80.4-> 93.9%
++ negation                 0.80               45.1%          7.4% [5-10]       83.6%               2.5%  80.4-> 94.1%
++ entities                 0.75               45.1%          8.9% [7-11]       80.3%               0.0%  80.4-> 94.3%
++ superseded (full)        0.75               45.1%           3.9% [2-6]       91.3%               0.0%  80.4->100.0%
+full + citation repair     0.75               45.1%           3.9% [2-6]       91.3%               0.0%  80.4->100.0%
+
+== per fault type, full verifier with citation repair ==
+fault                     n  outcome
+none                    255  kept_ok 255
+reword                   78  kept_ok 78
+subtle_addition          54  dropped 32, slipped 22
+wrong_citation           47  repaired 47
+entity_swap              41  dropped 41
+stale_claim              33  dropped 33
+fabricated_citation      31  repaired 31
+unsupported_addition     28  dropped 28
+number_altered           24  dropped 24
+paraphrase_unseen        21  kept_ok 21
+negation_dropped         17  dropped 17
+antonym_flip             12  slipped 4, dropped 8
+unit_swap                12  dropped 12
+paraphrase_known         10  kept_ok 10
+
+== bad claims the full verifier kept ==
+  [subtle_addition] Requests to the Stratus Cache time out after 10 seconds for all customers.
+      from: Requests to the Stratus Cache time out after 10 seconds.
+  [subtle_addition] The maximum payload size accepted by the Nimbus API is 1 megabytes in all environments.
+      from: The maximum payload size accepted by the Nimbus API is 1 megabytes.
+  [subtle_addition] The Cobalt Deploy enforces a rate limit of 100 requests per minute per API key for all regions.
+      from: The Cobalt Deploy enforces a rate limit of 100 requests per minute per API key.
+  [antonym_flip] The Cirrus Queue lacks support for dry-run mode.
+      from: The Cirrus Queue supports dry-run mode.
+  [subtle_addition] List endpoints on the Cirrus Queue return 25 items per page by default for all regions.
+      from: List endpoints on the Cirrus Queue return 25 items per page by default.
+  [subtle_addition] List endpoints on the Atlas Router return 10 items per page by default across every workspace.
+      from: List endpoints on the Atlas Router return 10 items per page by default.
+
+== faithful claims the full verifier rejected ==
+
+== abstention (threshold chosen on dev, scored on held-out) ==
+  dev balanced accuracy: evidence coverage 0.933, top BM25 score 0.974  -> pipeline gate: top BM25 score (threshold 10.43)
+gate                           threshold  precision  recall  answerable lost
+never abstain                          -       0.0%    0.0%      0.0% (0/64)
+top BM25 score threshold           10.43      92.9%   92.9%      3.1% (2/64)
+evidence coverage threshold         0.66      78.1%   89.3%     10.9% (7/64)
+
+== end to end on held-out products (95% CI resamples questions) ==
+pipeline                                                    correct            wrong        abstained stale (conflict)  no-answer qs answered  unsupported claims
+-- clean generator
+naive RAG (no resolve, no abstain, no verify)         81.2% [71-90]    18.8% [10-29]       0.0% [0-0]    38.1% [19-57]          85.7% [71-97]                   -
++ conflict resolution                              100.0% [100-100]       0.0% [0-0]       0.0% [0-0]       0.0% [0-0]          85.7% [71-97]                   -
++ abstention                                         96.9% [92-100]       0.0% [0-0]       3.1% [0-8]       0.0% [0-0]            7.1% [0-17]                   -
++ citation verifier                                  96.9% [92-100]       0.0% [0-0]       3.1% [0-8]       0.0% [0-0]            7.1% [0-17]                   -
+-- noisy generator (5 held-out noise seeds)
+noisy generator, no verifier                          82.5% [77-87]    14.4% [11-18]       3.1% [0-8]       1.9% [0-6]            7.1% [0-17]       41.2% [38-45]
+noisy + verifier (drop only)                          60.3% [54-66]       0.0% [0-0]    39.7% [34-46]       0.0% [0-0]            7.1% [0-17]          6.4% [4-9]
+noisy + verifier (drop + repair)                      75.6% [69-81]       0.0% [0-0]    24.4% [19-31]       0.0% [0-0]            7.1% [0-17]          6.1% [4-9]
